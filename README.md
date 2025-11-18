@@ -22,15 +22,15 @@ It takes user-input text and converts it into clear, natural-sounding speech.
 
 ## 📦 Installation
 
-### 1️⃣ Clone the repository
+1️⃣ Clone the repository
 ```bash
 git clone https://github.com/Harshita2211/robo_speaker.git
 ---
-### 2️⃣ Move into the project folder
+2️⃣ Move into the project folder
 ```bash
 cd robo_speaker
 ---
-### 3️⃣ Install required library
+3️⃣ Install required library
 pip install pyttsx3
 ---
 ▶️ How to Run
