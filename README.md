@@ -21,7 +21,7 @@ It takes user-input text and converts it into clear, natural-sounding speech.
 ---
 
 ## 📦 Installation
-
+---
 1️⃣ Clone the repository
 ```bash
 git clone https://github.com/Harshita2211/robo_speaker.git
