@@ -1,26 +1,183 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robospeaker Web</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robo Speaker - text to speech in your browser</title>
+  <meta name="description" content="Type or paste text and Robo reads it out loud. Pick a voice, change the speed and pitch, and follow along word by word.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='8' fill='%232A55F5'/%3E%3Crect x='9' y='11' width='4' height='6' rx='2' fill='white'/%3E%3Crect x='19' y='11' width='4' height='6' rx='2' fill='white'/%3E%3Crect x='10' y='21' width='12' height='2.5' rx='1.25' fill='%23FFB020'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
+  <script>
+    /* Apply the saved or system theme before first paint to avoid a flash. */
+    (function () {
+      try {
+        var t = localStorage.getItem('robospeaker:theme');
+        t = t ? JSON.parse(t) : null;
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.4" fill="currentColor"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  </svg>
 
-<div class="container">
-    <h1 class="title">🔊 Robospeaker</h1>
-    <p class="subtitle">Type your text and let Robo speak it out loud</p>
+  <a class="skip" href="#text">Skip to the text box</a>
 
-    <textarea id="text" placeholder="Enter text to speak..."></textarea>
+  <div class="app">
+    <header class="topbar">
+      <h1 class="brand">
+        <svg class="brand-mark" width="36" height="36" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="3" y="5" width="26" height="22" rx="8" class="bm-body"/>
+          <rect x="9" y="11" width="4" height="6" rx="2" class="bm-eye"/>
+          <rect x="19" y="11" width="4" height="6" rx="2" class="bm-eye"/>
+          <rect x="10" y="21" width="12" height="2.5" rx="1.25" class="bm-mouth"/>
+        </svg>
+        Robo Speaker
+      </h1>
+      <button id="theme" class="icon-btn" type="button" aria-label="Switch to dark theme">
+        <svg class="ic ic-moon" aria-hidden="true"><use href="#i-moon"></use></svg>
+        <svg class="ic ic-sun" aria-hidden="true"><use href="#i-sun"></use></svg>
+      </button>
+    </header>
 
-    <div class="button-group">
-        <button class="speak-btn" onclick="speakNow()">Speak (Browser)</button>
-        
-    </div>
-</div>
+    <main class="grid">
+      <section class="panel stage" aria-label="Robo and playback controls">
+        <svg id="robot" class="robot" viewBox="0 0 320 280" role="img" aria-label="Robo, a friendly robot with a speaker for a mouth" data-state="idle">
+          <line class="r-stem" x1="160" y1="46" x2="160" y2="22"/>
+          <circle class="led" cx="160" cy="16" r="10"/>
 
-<script src="script.js"></script>
+          <rect class="r-casing" x="14" y="112" width="30" height="72" rx="13"/>
+          <rect class="r-casing" x="276" y="112" width="30" height="72" rx="13"/>
+          <path class="r-detail" d="M24 130h10M24 148h10M24 166h10M286 130h10M286 148h10M286 166h10" fill="none"/>
+
+          <rect class="r-edge" x="36" y="50" width="248" height="212" rx="60"/>
+          <rect class="r-casing" x="36" y="44" width="248" height="212" rx="60"/>
+
+          <rect class="screen" x="66" y="70" width="188" height="98" rx="34"/>
+          <g class="eyes">
+            <rect class="eye" x="104" y="99" width="34" height="40" rx="15"/>
+            <rect class="eye" x="182" y="99" width="34" height="40" rx="15"/>
+          </g>
+
+          <rect class="screen" x="66" y="184" width="188" height="52" rx="20"/>
+          <g id="mouth" class="mouth">
+            <rect x="88" y="207" width="8" height="6" rx="4"/>
+            <rect x="101.6" y="207" width="8" height="6" rx="4"/>
+            <rect x="115.2" y="207" width="8" height="6" rx="4"/>
+            <rect x="128.8" y="207" width="8" height="6" rx="4"/>
+            <rect x="142.4" y="207" width="8" height="6" rx="4"/>
+            <rect x="156" y="207" width="8" height="6" rx="4"/>
+            <rect x="169.6" y="207" width="8" height="6" rx="4"/>
+            <rect x="183.2" y="207" width="8" height="6" rx="4"/>
+            <rect x="196.8" y="207" width="8" height="6" rx="4"/>
+            <rect x="210.4" y="207" width="8" height="6" rx="4"/>
+            <rect x="224" y="207" width="8" height="6" rx="4"/>
+          </g>
+        </svg>
+
+        <div class="status-block">
+          <p id="status" class="status" role="status" aria-live="polite">Ready</p>
+          <p id="detail" class="detail">Type or pick a sample, then press Speak.</p>
+          <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+        </div>
+
+        <div class="transport">
+          <button id="speak" class="btn btn-primary" type="button">
+            <svg class="ic" aria-hidden="true"><use id="speakIcon" href="#i-play"></use></svg>
+            <span id="speakLabel">Speak</span>
+          </button>
+          <button id="stop" class="btn" type="button" disabled>
+            <svg class="ic" aria-hidden="true"><use href="#i-stop"></use></svg>
+            <span>Stop</span>
+          </button>
+        </div>
+        <p class="keys">Press <kbd id="modKey">Ctrl</kbd> + <kbd>Enter</kbd> to speak or pause, and <kbd>Esc</kbd> to stop.</p>
+      </section>
+
+      <div class="column">
+        <section class="panel sheet" aria-label="Text to speak">
+          <div id="editor" class="editor" data-mode="edit">
+            <label for="text" class="sr-only">Text for Robo to read out loud</label>
+            <textarea id="text" maxlength="5000" spellcheck="true" placeholder="Type or paste something for Robo to read out loud."></textarea>
+            <div id="reader" class="reader" role="group" aria-label="Reading view. Click a word to start from there." hidden></div>
+          </div>
+
+          <div class="sheet-foot">
+            <p id="stats" class="stats">0 words</p>
+            <button id="clear" class="link-btn" type="button">Clear text</button>
+          </div>
+
+          <p id="notice" class="notice" role="alert" hidden></p>
+
+          <div class="samples">
+            <p class="samples-title">Nothing to say? Try one of these.</p>
+            <div id="chips" class="chips">
+              <button class="chip" type="button" data-text="Hello! I'm Robo, a robot that reads whatever you type out loud. Change my voice, speed and pitch in the settings, then press Speak.">Meet Robo</button>
+              <button class="chip" type="button" data-text="She sells seashells by the seashore. The shells she sells are surely seashells.">Tongue twister</button>
+              <button class="chip" type="button" data-text="Ten. Nine. Eight. Seven. Six. Five. Four. Three. Two. One. Liftoff!">Countdown</button>
+              <button class="chip" type="button" data-text="Once upon a time, a small robot found an old radio in a field. It listened all night, and by morning it had learned to sing.">Short story</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel settings" aria-labelledby="settings-title">
+          <div class="panel-head">
+            <h2 id="settings-title">Voice settings</h2>
+            <button id="reset" class="link-btn" type="button">Reset</button>
+          </div>
+          <div class="settings-grid">
+            <div class="field field-wide">
+              <label for="voice">Voice</label>
+              <div class="select-wrap">
+                <select id="voice"><option value="">Browser default</option></select>
+              </div>
+              <p class="field-note">Available voices depend on your browser and device.</p>
+            </div>
+            <div class="field">
+              <div class="field-row"><label for="rate">Speed</label><output id="rateOut" for="rate">1.0x</output></div>
+              <input id="rate" type="range" min="0.5" max="2" step="0.05" value="1">
+            </div>
+            <div class="field">
+              <div class="field-row"><label for="pitch">Pitch</label><output id="pitchOut" for="pitch">1.0</output></div>
+              <input id="pitch" type="range" min="0" max="2" step="0.1" value="1">
+            </div>
+            <div class="field">
+              <div class="field-row"><label for="volume">Volume</label><output id="volumeOut" for="volume">100%</output></div>
+              <input id="volume" type="range" min="0" max="1" step="0.05" value="1">
+            </div>
+          </div>
+        </section>
+
+        <section class="panel recent" aria-labelledby="recent-title">
+          <div class="panel-head">
+            <h2 id="recent-title">Recent</h2>
+            <button id="clearRecent" class="link-btn" type="button" hidden>Clear list</button>
+          </div>
+          <p id="recentEmpty" class="empty">Nothing yet. Text you speak shows up here so you can load it again.</p>
+          <ul id="recentList" class="recent-list" hidden></ul>
+        </section>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <p>Robo Speaker runs in your browser. Voices come from your device, so they sound different from one browser to the next. Some browsers use online voices that send your text to their speech service. Your draft and recent phrases are saved only in this browser.</p>
+      <p><a href="https://github.com/Harshita2211/Robo_Speaker">View the source on GitHub</a></p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
-
